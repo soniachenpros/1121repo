@@ -6,8 +6,17 @@ const input = document.getElementById('todo-input');
 const list = document.getElementById('todo-list');
 const emptyState = document.getElementById('empty-state');
 const remainingCount = document.getElementById('remaining-count');
+const themeToggle = document.getElementById('theme-toggle');
+const themeIcon = document.getElementById('theme-icon');
+const themeLabel = document.getElementById('theme-label');
+const filterButtons = document.querySelectorAll('.btn-filter');
+const colorScheme = window.matchMedia('(prefers-color-scheme: dark)');
+const THEME_STORAGE_KEY = 'root-todo-theme';
 
 let todos = loadTodos();
+let activeFilter = 'all';
+const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+let selectedTheme = savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : null;
 
 // 從 localStorage 載入清單；資料不存在或格式錯誤時以空清單開始。
 function loadTodos() {
@@ -30,7 +39,13 @@ function saveTodos() {
 function render() {
   list.replaceChildren();
 
-  todos.forEach((todo) => {
+  const visibleTodos = todos.filter((todo) => {
+    if (activeFilter === 'active') return !todo.completed;
+    if (activeFilter === 'completed') return todo.completed;
+    return true;
+  });
+
+  visibleTodos.forEach((todo) => {
     const item = document.createElement('li');
     item.className = todo.completed ? 'todo-item completed' : 'todo-item';
     item.dataset.id = todo.id;
@@ -54,15 +69,64 @@ function render() {
     list.append(item);
   });
 
-  emptyState.hidden = todos.length > 0;
+  emptyState.hidden = visibleTodos.length > 0;
+  if (activeFilter === 'active') {
+    emptyState.textContent = '沒有未完成的待辦事項。';
+  } else if (activeFilter === 'completed') {
+    emptyState.textContent = '沒有已完成的待辦事項。';
+  } else {
+    emptyState.textContent = '還沒有任何待辦事項,新增一個吧!';
+  }
+
   const remaining = todos.filter((todo) => !todo.completed).length;
   remainingCount.textContent = `未完成:${remaining} 項`;
+}
+
+// 套用手動選擇的主題；沒有選擇時由 CSS 跟隨系統設定。
+function updateTheme() {
+  if (selectedTheme) {
+    document.documentElement.dataset.theme = selectedTheme;
+  } else {
+    delete document.documentElement.dataset.theme;
+  }
+
+  const isDark = selectedTheme
+    ? selectedTheme === 'dark'
+    : colorScheme.matches;
+  themeIcon.textContent = isDark ? '☀️' : '🌙';
+  themeLabel.textContent = isDark ? '淺色模式' : '深色模式';
+  themeToggle.setAttribute('aria-label', isDark ? '切換為淺色模式' : '切換為深色模式');
 }
 
 // 以時間戳記與隨機字串建立待辦事項識別碼。
 function createId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
+
+themeToggle.addEventListener('click', () => {
+  const isDark = selectedTheme
+    ? selectedTheme === 'dark'
+    : colorScheme.matches;
+  selectedTheme = isDark ? 'light' : 'dark';
+  localStorage.setItem(THEME_STORAGE_KEY, selectedTheme);
+  updateTheme();
+});
+
+colorScheme.addEventListener('change', () => {
+  if (!selectedTheme) updateTheme();
+});
+
+filterButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    activeFilter = button.dataset.filter;
+    filterButtons.forEach((filterButton) => {
+      const isActive = filterButton === button;
+      filterButton.classList.toggle('active', isActive);
+      filterButton.setAttribute('aria-pressed', String(isActive));
+    });
+    render();
+  });
+});
 
 form.addEventListener('submit', (event) => {
   event.preventDefault();
@@ -97,4 +161,5 @@ list.addEventListener('click', (event) => {
   render();
 });
 
+updateTheme();
 render();
