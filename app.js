@@ -6,6 +6,7 @@ const input = document.getElementById('todo-input');
 const list = document.getElementById('todo-list');
 const emptyState = document.getElementById('empty-state');
 const remainingCount = document.getElementById('remaining-count');
+const clearCompletedButton = document.getElementById('clear-completed');
 const themeToggle = document.getElementById('theme-toggle');
 const themeIcon = document.getElementById('theme-icon');
 const themeLabel = document.getElementById('theme-label');
@@ -83,6 +84,7 @@ function render() {
 
   const remaining = todos.filter((todo) => !todo.completed).length;
   remainingCount.textContent = `未完成:${remaining} 項`;
+  clearCompletedButton.disabled = !todos.some((todo) => todo.completed);
 }
 
 // 依照目前篩選條件更新按鈕的選取狀態。
@@ -138,6 +140,15 @@ filterButtons.forEach((button) => {
     updateFilterButtons();
     render();
   });
+});
+
+clearCompletedButton.addEventListener('click', () => {
+  if (!todos.some((todo) => todo.completed)) return;
+  if (!window.confirm('確定要清除所有已完成的待辦事項嗎？')) return;
+
+  todos = todos.filter((todo) => !todo.completed);
+  saveTodos();
+  render();
 });
 
 form.addEventListener('submit', (event) => {
