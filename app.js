@@ -12,9 +12,12 @@ const themeLabel = document.getElementById('theme-label');
 const filterButtons = document.querySelectorAll('.btn-filter');
 const colorScheme = window.matchMedia('(prefers-color-scheme: dark)');
 const THEME_STORAGE_KEY = 'root-todo-theme';
+const FILTER_STORAGE_KEY = 'root-todo-filter';
+const FILTER_VALUES = ['all', 'active', 'completed'];
 
 let todos = loadTodos();
-let activeFilter = 'all';
+const savedFilter = localStorage.getItem(FILTER_STORAGE_KEY);
+let activeFilter = FILTER_VALUES.includes(savedFilter) ? savedFilter : 'all';
 const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
 let selectedTheme = savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : null;
 
@@ -82,6 +85,15 @@ function render() {
   remainingCount.textContent = `未完成:${remaining} 項`;
 }
 
+// 依照目前篩選條件更新按鈕的選取狀態。
+function updateFilterButtons() {
+  filterButtons.forEach((button) => {
+    const isActive = button.dataset.filter === activeFilter;
+    button.classList.toggle('active', isActive);
+    button.setAttribute('aria-pressed', String(isActive));
+  });
+}
+
 // 套用手動選擇的主題；沒有選擇時由 CSS 跟隨系統設定。
 function updateTheme() {
   if (selectedTheme) {
@@ -118,12 +130,12 @@ colorScheme.addEventListener('change', () => {
 
 filterButtons.forEach((button) => {
   button.addEventListener('click', () => {
-    activeFilter = button.dataset.filter;
-    filterButtons.forEach((filterButton) => {
-      const isActive = filterButton === button;
-      filterButton.classList.toggle('active', isActive);
-      filterButton.setAttribute('aria-pressed', String(isActive));
-    });
+    const selectedFilter = button.dataset.filter;
+    if (!FILTER_VALUES.includes(selectedFilter)) return;
+
+    activeFilter = selectedFilter;
+    localStorage.setItem(FILTER_STORAGE_KEY, activeFilter);
+    updateFilterButtons();
     render();
   });
 });
@@ -162,4 +174,5 @@ list.addEventListener('click', (event) => {
 });
 
 updateTheme();
+updateFilterButtons();
 render();
